@@ -1,52 +1,105 @@
 <template>
-  <div>
-    <vue-good-table
-      :columns="columns"
-      :rows="rows"
-      :search-options="{
-	    enabled: true
-	  }"
+  <div class="row mx-2">
+    <table-lite
+      :is-loading="table.isLoading"
+      :columns="table.columns"
+      :rows="table.rows"
+      :total="table.totalRecordCount"
+      :sortable="table.sortable"
+      @do-search="doSearch"
+      @is-finished="tableLoadingFinish"
     />
   </div>
 </template>
 
 <script>
-export default {
-  name: 'Report',
-  data() {
-    return {
-      columns: [
-        {
-          label: 'Name',
-          field: 'name',
+  import { defineComponent, reactive, computed } from "vue"
+  import TableLite from "vue3-table-lite"
+
+  export default defineComponent ({
+    components: { TableLite },
+    setup() {
+      // Init Your table settings
+      const table = reactive({
+        isLoading: false,
+        columns: [
+          {
+            label: "ID",
+            field: "id",
+            width: "3%",
+            sortable: true,
+            isKey: true,
+          },
+          {
+            label: "Jenis",
+            field: "jenis",
+            width: "10%",
+            sortable: true,
+          },
+          {
+            label: "Nama Desa",
+            field: "nama_desa",
+            width: "15%",
+            sortable: true,
+          },
+        ],
+        rows: [],
+        totalRecordCount: 0,
+        sortable: {
+          order: "id",
+          sort: "asc",
         },
-        {
-          label: 'Age',
-          field: 'age',
-          type: 'number',
-        },
-        {
-          label: 'Created On',
-          field: 'createdAt',
-          type: 'date',
-          dateInputFormat: 'yyyy-MM-dd',
-          dateOutputFormat: 'MMM do yy',
-        },
-        {
-          label: 'Percent',
-          field: 'score',
-          type: 'percentage',
-        },
-      ],
-      rows: [
-        { id:1, name:"John", age: 20, createdAt: '2022-01-01',score: 0.03343 },
-        { id:2, name:"Jane", age: 24, createdAt: '2011-10-31', score: 0.03343 },
-        { id:3, name:"Susan", age: 16, createdAt: '2011-10-30', score: 0.03343 },
-        { id:4, name:"Chris", age: 55, createdAt: '2011-10-11', score: 0.03343 },
-        { id:5, name:"Dan", age: 40, createdAt: '2011-10-21', score: 0.03343 },
-        { id:6, name:"John", age: 20, createdAt: '2011-10-31', score: 0.03343 },
-      ],
-    };
-  },
-};
+      });
+  
+      /**
+       * Table search event
+      */
+      const doSearch = (offset, limit, order, sort) => {
+        table.isLoading = true;
+  
+        // Start use axios to get data from Server
+        let url = 'http://civue.tes/api/desa?offset=' + offset + '&limit=' + limit + '&order=' + order + '&sort=' + sort;
+        axios.get(url)
+        .then((response) => {
+          // Point: your response is like it on this example.
+          //   {
+          //   rows: [{
+          //     id: 1,
+          //     name: 'jack',
+          //     email: 'example@example.com'
+          //   },{
+          //     id: 2,
+          //     name: 'rose',
+          //     email: 'example@example.com'
+          //   }],
+          //   count: 2,
+          //   ...something
+          // }
+          
+          // refresh table rows
+          table.rows = response.rows;
+          table.totalRecordCount = response.count;
+          table.sortable.order = order;
+          table.sortable.sort = sort;
+        });
+        // End use axios to get data from Server
+      };
+  
+      /**
+       * Table search finished event
+      */
+      const tableLoadingFinish = (elements) => {
+        table.isLoading = false;
+      };
+
+      // Get data first
+      doSearch(0, 10, 'id', 'asc');
+  
+      return {
+        table,
+        doSearch,
+        tableLoadingFinish,
+      };
+    }
+  })
 </script>
